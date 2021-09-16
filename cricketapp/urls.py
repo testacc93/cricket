@@ -12,7 +12,5 @@ urlpatterns = [
     path('matches', views.GetMatchAPIView.as_view(), name='matches'),
     path('scores', views.GetScoreAPIView.as_view(), name='scores'),
 
-
-
 ]
 
