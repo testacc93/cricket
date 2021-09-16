@@ -55,7 +55,7 @@ class GetTeamAPIView(APIView):
 class CreateTeamAPIView(generics.GenericAPIView):
     serializer_class = TeamSerializer
 
-    @swagger_auto_schema(tags=['Players'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Teams'], operation_description='List outs all the teams')
     def post(self, request, *args, **kwargs):
         data = request.data
         print("the daaaata is", type(data['score']))

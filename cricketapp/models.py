@@ -58,9 +58,6 @@ class Match(models.Model):
     bowler_of_match = GroupedForeignKey(Player, 'team', related_name='bowler', default=1)
     fielder_of_match = GroupedForeignKey(Player, 'team', related_name='fielder', default=1)
 
-
-
-
     def __str__(self):
         return self.name
 
