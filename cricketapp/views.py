@@ -20,7 +20,6 @@ class GetCountryAPIView(APIView):
 
     @swagger_auto_schema(tags=['Countries'], operation_description='Lists out all countries')
     def get(self, request,searchkey=''):
-        print("the length is", (searchkey))
         if searchkey == "":
             countries_qs = models.Country.objects.all()
         else:
@@ -89,7 +88,6 @@ class CreateTeamAPIView(generics.GenericAPIView):
     @swagger_auto_schema(tags=['Teams'], operation_description='Creates a new team')
     def post(self, request, *args, **kwargs):
         data = request.data
-        print("the daaaata is", type(data['score']))
         if models.Team.objects.filter(name=data['name']).exists():
             return Response({'message':'Team already exists'})
         try:
@@ -114,7 +112,6 @@ class UpdateTeamAPIView(generics.GenericAPIView):
             country_id = models.Country.objects.filter(name=data['country'])[0].id
         except:
             return Response({'message':'Country not found, consider adding country first'},status=status.HTTP_404_NOT_FOUND)
-        print("the data is", country_id)
         if team is None:
             return Response({'message':'Team with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
         models.Team.objects.filter(id=id).update(name=data['name'], country=country_id, score=data['score'])
@@ -286,7 +283,6 @@ class CreateMatchAPIView(generics.GenericAPIView):
             return Response({'message':'Winning team cant lose'})
         try:
             player_of_match_team = models.Player.objects.filter(name=data['player_of_match'])[0].team
-            print("player team", player_of_match_team)
         except:
             return Response({'message':'Player did not play the match'})
         try:
