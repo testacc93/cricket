@@ -27,7 +27,7 @@ schema_view = get_schema_view(
     openapi.Info(
         title="Cricket APP",
         default_version='v1',
-        description="Cricket APIs where one can make a get or post request in order to fetch or insert data in to database"
+        description="Cricket APIs where one can make GET, POST, PUT, DELETE operations in order to test the APIs"
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),

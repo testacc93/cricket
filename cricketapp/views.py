@@ -1,22 +1,24 @@
 from django.core.checks.messages import Error
 from django.shortcuts import render
-from cricketapp import serializers
 from rest_framework.serializers import Serializer, SerializerMetaclass
 from rest_framework.utils import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics,status, exceptions
-from cricketapp.models import Country, Team, Player
-from cricketapp.serializers import CountrySerializer, TeamSerializer, PlayerSerializer, VenueSerializer, MatchSerializer, ScoreSerializer
 from django.db.models import F
+
+from cricketapp import serializers
 from cricketapp import models
+from cricketapp.mixins import get_country, get_player, get_team, get_venue
+from cricketapp.models import Country, Team, Player
+from cricketapp.serializers import CountrySerializer, TeamSerializer, PlayerSerializer,VenueSerializer, MatchSerializer, ScoreSerializer
 
 
-class GetCountryAPIView(generics.GenericAPIView):
+class GetCountryAPIView(APIView):
     serlizer_class = CountrySerializer
 
-    @swagger_auto_schema(tags=['Countries'], operation_description='List outs all countries')
+    @swagger_auto_schema(tags=['Countries'], operation_description='Lists out all countries')
     def get(self, request,searchkey=''):
         print("the length is", (searchkey))
         if searchkey == "":
@@ -40,7 +42,36 @@ class CreateCountryAPIView(generics.GenericAPIView):
             return Response({'message':'Country already exists'})
         models.Country.objects.create(name=(data['name']).lower())
         return Response({'message':'success', 'data':request.data['name']})
-    
+
+
+class UpdateCountryAPIView(generics.GenericAPIView):
+    serializer_class = CountrySerializer
+
+    @swagger_auto_schema(tags=['Countries'], operation_description='Alters the name of a country')
+    def put(self, request, id):
+        data = request.data
+        country_change = get_country(id)
+        country_new_name = request.data['name']
+        if country_change is None:
+            return Response({'message':'Country not found'}, status=status.HTTP_404_NOT_FOUND)
+        if country_exist := models.Country.objects.get(name=data['name']):
+            return Response({'message':'Country with same name exists'},status=status.HTTP_400_BAD_REQUEST)
+        models.Country.objects.filter(id=id).update(name=country_new_name)
+        return Response({'message':'Successfully changed country name'},status=status.HTTP_200_OK)
+
+
+class DeleteCountryAPIView(generics.DestroyAPIView):
+    serializer_class = CountrySerializer
+
+    @swagger_auto_schema(tags=['Countries'], operation_description='deletes a country')
+    def delete(self, request, id):
+        try:
+            models.Country.objects.get(id=id)
+        except:
+            return Response({'message':'Country with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        models.Country.objects.filter(id=id).delete()
+        return Response({'message':'success'})
+
 
 class GetTeamAPIView(APIView):
     serlizer_class = TeamSerializer
@@ -69,7 +100,38 @@ class CreateTeamAPIView(generics.GenericAPIView):
                     return Response({'message':'Score can not be less than 0'})
         except models.Country.DoesNotExist:
             return Response({'message':'country not found'})
-        return Response({'message':'Success', 'data':data})
+        return Response({'message':'Success', 'data':data}, status=status.HTTP_201_CREATED)
+
+
+class UpdateTeamAPIView(generics.GenericAPIView):
+    serializer_class = TeamSerializer
+
+    @swagger_auto_schema(tags=['Teams'], operation_description='Update the details of a team')
+    def put(self, request, id, *args, **kwargs):
+        data = request.data
+        team = get_team(id)
+        try:
+            country_id = models.Country.objects.filter(name=data['country'])[0].id
+        except:
+            return Response({'message':'Country not found, consider adding country first'},status=status.HTTP_404_NOT_FOUND)
+        print("the data is", country_id)
+        if team is None:
+            return Response({'message':'Team with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        models.Team.objects.filter(id=id).update(name=data['name'], country=country_id, score=data['score'])
+        return Response({'message':'Successfully changed team details', 'data':data},status=status.HTTP_200_OK)
+
+
+class DeleteTeamAPIView(generics.DestroyAPIView):
+    serializer_class = TeamSerializer
+
+    @swagger_auto_schema(tags=['Teams'], operation_description='deletes a team')
+    def delete(self, request, id):
+        try:
+            models.Team.objects.get(id=id)
+        except:
+            return Response({'message':'Team with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        models.Team.objects.filter(id=id).delete()
+        return Response({'message':'success'}, status=status.HTTP_200_OK)
 
 
 class GetPlayerAPIView(APIView):
@@ -97,7 +159,43 @@ class CreatePlayerAPIView(generics.GenericAPIView):
                     return Response({'message':'Team not found'})
         except models.Country.DoesNotExist:
             return Response({'message':'country not found'})
-        return Response({'message':'Success', 'data':data})
+        return Response({'message':'Success', 'data':data},status=status.HTTP_200_OK)
+
+
+class UpdatePlayerAPIView(generics.GenericAPIView):
+    serializer_class = PlayerSerializer
+
+    @swagger_auto_schema(tags=['Players'], operation_description='Update the details of a player')
+    def put(self, request, id, *args, **kwargs):
+        data = request.data
+        player = get_player(id)
+        try:
+            country_id = get_country(data['country']).id
+        except:
+            return Response({'message':'Country not found, consider adding country first'},status=status.HTTP_404_NOT_FOUND)
+        try:
+            team_id = get_team(data['name']).id
+        except:
+            return Response({'message':'Team not found, consider adding team first'},status=status.HTTP_404_NOT_FOUND)
+        if player is None:
+            return Response({'message':'player with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        if (int(data['total_wickets'] < 0) or (int(data['total_runs'] < 0))):
+            return Response({'message':'runs or wickets cannot be less than 0'}, status=status.HTTP_400_BAD_REQUEST)
+        models.Player.objects.filter(id=id).update(name=data['name'], country=country_id, age=data['age'], total_runs=data['total_runs'], total_wickets=data['total_wickets'], team=team_id)
+        return Response({'message':'Successfully changed player details', 'data':data},status=status.HTTP_200_OK)
+
+
+class DeletePlayerAPIView(generics.DestroyAPIView):
+    serializer_class = PlayerSerializer
+
+    @swagger_auto_schema(tags=['Players'], operation_description='deletes a player')
+    def delete(self, request, id):
+        try:
+            models.Player.objects.get(id=id)
+        except:
+            return Response({'message':'Player with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        models.Player.objects.filter(id=id).delete()
+        return Response({'message':'success'}, status=status.HTTP_200_OK)
 
 
 class GetVenueAPIView(APIView):
@@ -131,6 +229,38 @@ class CreateVenueAPIView(generics.GenericAPIView):
         return Response({'message':'Success', 'data':data})
 
 
+class UpdateVenueAPIView(generics.GenericAPIView):
+    serializer_class = VenueSerializer
+
+    @swagger_auto_schema(tags=['Venue'], operation_description='Creates a new venue')
+    def put(self, request,id, *args, **kwargs):
+        data = request.data
+        venue = get_venue(id)
+        if venue is None:
+            return Response({'message':'venue with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        if len(data['place']) < 1:
+            return Response({'message':'Place cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            country_id = get_country(data['country']).id
+        except:
+            return Response({'message':'Country not found, consider adding country first'},status=status.HTTP_404_NOT_FOUND)
+        models.Venue.objects.filter(id=id).update(place=data['place'], country=country_id)
+        return Response({'message':'Successfully changed venue details', 'data':data},status=status.HTTP_200_OK)
+
+
+class DeleteVenueAPIView(generics.DestroyAPIView):
+    serializer_class = VenueSerializer
+
+    @swagger_auto_schema(tags=['Venue'], operation_description='deletes a venue')
+    def delete(self, request, id):
+        try:
+            models.Venue.objects.get(id=id)
+        except:
+            return Response({'message':'Venue with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        models.Venue.objects.filter(id=id).delete()
+        return Response({'message':'success'}, status=status.HTTP_200_OK)
+
+
 class GetMatchAPIView(APIView):
     serlizer_class = MatchSerializer
 
@@ -143,13 +273,6 @@ class GetMatchAPIView(APIView):
 
 class CreateMatchAPIView(generics.GenericAPIView):
     serializer_class = MatchSerializer
-
-    # def get_player(self, name):
-    #     try:
-    #         player = models.Player.objects.get(name=name)
-    #     except models.Player.DoesNotExist:
-    #         return Response({"message":"player not found"},status=status.HTTP_400_BAD_REQUEST)
-    #     return player
 
     @swagger_auto_schema(tags=['Match'], operation_description='Creates a new match')
     def post(self, request, *args, **kwargs):
@@ -197,6 +320,19 @@ class CreateMatchAPIView(generics.GenericAPIView):
         models.Match.objects.create(winner_score=data['winner_score'],loser_score=data['loser_score'],winner_wickets=data['winner_wickets'],loser_wickets=data['loser_wickets'],name=str(winning_team)+' vs '+str(losing_team), winner=winning_team, loser=losing_team, player_of_match=player,bowler_of_match=bowler, fielder_of_match=fielder)
         models.Team.objects.filter(name=data['winner']).update(score=F('score')+2)
         return Response({'message':'Success'})
+
+
+class DeleteMatchAPIView(generics.DestroyAPIView):
+    serializer_class = MatchSerializer
+
+    @swagger_auto_schema(tags=['Match'], operation_description='deletes a match')
+    def delete(self, request, id):
+        try:
+            models.Match.objects.get(id=id)
+        except:
+            return Response({'message':'Match with id {} not found'.format(id)}, status=status.HTTP_404_NOT_FOUND)
+        models.Match.objects.filter(id=id).delete()
+        return Response({'message':'success'}, status=status.HTTP_200_OK)
 
 
 class GetScoreAPIView(APIView):
