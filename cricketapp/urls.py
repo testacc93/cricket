@@ -5,8 +5,11 @@ from django.urls.conf import include
 from cricketapp import views
 
 urlpatterns = [
-    path('countries', views.GetCountryAPIView.as_view(), name='countries'),
+    # path('countries/<searchkey>', views.GetCountryAPIView.as_view(), name='countries'),
+    path('countries/', views.GetCountryAPIView.as_view(), name='countries'),
     path('create-country', views.CreateCountryAPIView.as_view(), name='create-country'),
+
+
     path('teams', views.GetTeamAPIView.as_view(), name='teams'),
     path('create-team', views.CreateTeamAPIView.as_view(), name='create-team'),
 
@@ -22,8 +25,6 @@ urlpatterns = [
     path('scores', views.GetScoreAPIView.as_view(), name='scores'),
 
     path('result', views.GetResultsAPIView.as_view(), name='result'),
-
-    
 
 ]
 

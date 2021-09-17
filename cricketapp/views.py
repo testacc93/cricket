@@ -21,16 +21,28 @@ class GetCountryAPIView(generics.GenericAPIView):
     serlizer_class = CountrySerializer
 
     @swagger_auto_schema(tags=['Countries'], operation_description='List outs all countries')
-    def get(self, request):
-        countries_qs = models.Country.objects.all()
+    def get(self, request,searchkey=''):
+        print("the length is", (searchkey))
+        if searchkey == "":
+            countries_qs = models.Country.objects.all()
+        else:
+            countries_qs = models.Country.objects.filter(name__contains=searchkey)
         ser = self.serlizer_class(countries_qs, many=True)
         return Response({'Countries':ser.data})
+
+    @swagger_auto_schema(tags=['Countries'], operation_description='List outs scores of all teams')
+    def put(self,request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"status": "success", "message": "user updated", "data": serializer.data},
+                        status=status.HTTP_200_OK)
 
 
 class CreateCountryAPIView(generics.GenericAPIView):
     serializer_class = CountrySerializer
 
-    @swagger_auto_schema(tags=['Countries'], operation_description='List outs all countries')
+    @swagger_auto_schema(tags=['Countries'], operation_description='Creates a country')
     def post(self, request):
         data = request.data
         name_country = (request.data['name']).lower()
@@ -55,7 +67,7 @@ class GetTeamAPIView(APIView):
 class CreateTeamAPIView(generics.GenericAPIView):
     serializer_class = TeamSerializer
 
-    @swagger_auto_schema(tags=['Teams'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Teams'], operation_description='Creates a new team')
     def post(self, request, *args, **kwargs):
         data = request.data
         print("the daaaata is", type(data['score']))
@@ -75,7 +87,7 @@ class CreateTeamAPIView(generics.GenericAPIView):
 class GetPlayerAPIView(APIView):
     serlizer_class = PlayerSerializer
 
-    @swagger_auto_schema(tags=['Players'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Players'], operation_description='List outs all the players')
     def get(self, request):
         player_qs = models.Player.objects.all()
         ser = self.serlizer_class(player_qs, many=True)
@@ -85,7 +97,7 @@ class GetPlayerAPIView(APIView):
 class CreatePlayerAPIView(generics.GenericAPIView):
     serializer_class = PlayerSerializer
 
-    @swagger_auto_schema(tags=['Players'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Players'], operation_description='Creates a new player')
     def post(self, request, *args, **kwargs):
         data = request.data
         try:
@@ -103,7 +115,7 @@ class CreatePlayerAPIView(generics.GenericAPIView):
 class GetVenueAPIView(APIView):
     serlizer_class = VenueSerializer
 
-    @swagger_auto_schema(tags=['Venue'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Venue'], operation_description='List outs all the venues')
     def get(self, request):
         venue_qs = models.Venue.objects.all()
         ser = self.serlizer_class(venue_qs, many=True)
@@ -113,7 +125,7 @@ class GetVenueAPIView(APIView):
 class CreateVenueAPIView(generics.GenericAPIView):
     serializer_class = VenueSerializer
 
-    @swagger_auto_schema(tags=['Venue'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Venue'], operation_description='Creates a new venue')
     def post(self, request, *args, **kwargs):
         data = request.data
         if models.Venue.objects.filter(place=data['place']).exists():
@@ -134,7 +146,7 @@ class CreateVenueAPIView(generics.GenericAPIView):
 class GetMatchAPIView(APIView):
     serlizer_class = MatchSerializer
 
-    @swagger_auto_schema(tags=['Match'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Match'], operation_description='List outs all the matches')
     def get(self, request):
         matches_qs = models.Match.objects.all()
         ser = self.serlizer_class(matches_qs, many=True)
@@ -144,7 +156,7 @@ class GetMatchAPIView(APIView):
 class CreateMatchAPIView(generics.GenericAPIView):
     serializer_class = MatchSerializer
 
-    @swagger_auto_schema(tags=['Match'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Match'], operation_description='Creates a new match')
     def post(self, request, *args, **kwargs):
         data = request.data
         player_of_match_team = models.Player.objects.filter(name=data['player_of_match'])[0].team
@@ -169,19 +181,26 @@ class CreateMatchAPIView(generics.GenericAPIView):
 class GetScoreAPIView(APIView):
     serlizer_class = ScoreSerializer
 
-    @swagger_auto_schema(tags=['Get Scores'], operation_description='List outs all the teams')
+    @swagger_auto_schema(tags=['Get Scores'], operation_description='List outs scores of all teams')
     def get(self, request):
         matches_qs = models.Team.objects.all()
         ser = self.serlizer_class(matches_qs, many=True)
         return Response({'Scores':ser.data})
 
+    
+
 
 class GetResultsAPIView(APIView):
     serlizer_class = ScoreSerializer
 
-    # @swagger_auto_schema(tags=['Results'], operation_description='List outs all the teams')
-    # def get(self, request):
-
-    #     return Response({'Results':ser.data})
+    @swagger_auto_schema(tags=['Results'], operation_description='List outs results')
+    def get(self, request):
+        all_matches = {}
+        matches_qs = models.Match.objects.all()
+        for match in matches_qs:
+            wickets_left = 11-int(match.winner_wickets)
+            runs_left = int(match.winner_score) - int(match.loser_score)
+            all_matches[match.name] = str(match.winner) + ' beat ' + str(match.loser) + ' by ' + str(wickets_left) + ' wickets'
+        return Response(all_matches)
 
         

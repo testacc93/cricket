@@ -27,7 +27,7 @@ schema_view = get_schema_view(
     openapi.Info(
         title="Cricket APP",
         default_version='v1',
-        description="My portfolio API where one can test different methods like GET, POST, DELETE. With time, I will also add other operations and not only that, integration with 3rd party APIs will be added soon. For time being, I have removed authentication, authorisation."
+        description="Cricket APIs where one can make a get or post request in order to fetch or insert data in to database"
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
