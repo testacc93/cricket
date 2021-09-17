@@ -1,18 +1,14 @@
 from django.core.checks.messages import Error
-from django.db.models.base import ModelState
 from django.shortcuts import render
 from cricketapp import serializers
 from rest_framework.serializers import Serializer, SerializerMetaclass
 from rest_framework.utils import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework.renderers import JSONRenderer
 from rest_framework import generics,status, exceptions
 from cricketapp.models import Country, Team, Player
 from cricketapp.serializers import CountrySerializer, TeamSerializer, PlayerSerializer, VenueSerializer, MatchSerializer, ScoreSerializer
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, DestroyAPIView
 from django.db.models import F
 from cricketapp import models
 
@@ -29,14 +25,6 @@ class GetCountryAPIView(generics.GenericAPIView):
             countries_qs = models.Country.objects.filter(name__contains=searchkey)
         ser = self.serlizer_class(countries_qs, many=True)
         return Response({'Countries':ser.data})
-
-    @swagger_auto_schema(tags=['Countries'], operation_description='List outs scores of all teams')
-    def put(self,request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"status": "success", "message": "user updated", "data": serializer.data},
-                        status=status.HTTP_200_OK)
 
 
 class CreateCountryAPIView(generics.GenericAPIView):
@@ -156,38 +144,69 @@ class GetMatchAPIView(APIView):
 class CreateMatchAPIView(generics.GenericAPIView):
     serializer_class = MatchSerializer
 
+    # def get_player(self, name):
+    #     try:
+    #         player = models.Player.objects.get(name=name)
+    #     except models.Player.DoesNotExist:
+    #         return Response({"message":"player not found"},status=status.HTTP_400_BAD_REQUEST)
+    #     return player
+
     @swagger_auto_schema(tags=['Match'], operation_description='Creates a new match')
     def post(self, request, *args, **kwargs):
         data = request.data
-        player_of_match_team = models.Player.objects.filter(name=data['player_of_match'])[0].team
-        winning_team = models.Team.objects.get(name=data['winner'])
-        losing_team = models.Team.objects.get(name=data['loser'])
-        player = models.Player.objects.get(name=data['player_of_match'])
-        bowler = models.Player.objects.get(name=data['bowler_of_match'])
-        fielder = models.Player.objects.get(name=data['fielder_of_match'])
-        if models.Team.objects.filter(name=data['winner']).exists():
-            if models.Team.objects.filter(name=data['loser']).exists():
-                if data['winner_score'] > 0:
-                    if data['winner_score'] > data['loser_score']:
-                        print("the inner team is", data['winner'])
-                        if str(player_of_match_team) == str(data['winner']):
-                            models.Match.objects.create(winner_score=data['winner_score'],loser_score=data['loser_score'],winner_wickets=data['winner_wickets'],loser_wickets=data['loser_wickets'],name=data['name'], winner=winning_team, loser=losing_team, player_of_match=player,bowler_of_match=bowler, fielder_of_match=fielder)
-                            models.Team.objects.filter(name=data['winner']).update(score=F('score')+2)
-                        else:
-                            return Response({'message':'Player of match has to be from winning team'})
+        try:
+            player = models.Player.objects.get(name=data['player_of_match'])
+        except models.Player.DoesNotExist:
+            return Response({'message':'no such player found'})
+
+        if str(data['winner'].lower()) == str(data['loser'].lower()):
+            return Response({'message':'Winning team cant lose'})
+        try:
+            player_of_match_team = models.Player.objects.filter(name=data['player_of_match'])[0].team
+            print("player team", player_of_match_team)
+        except:
+            return Response({'message':'Player did not play the match'})
+        try:
+            winning_team = models.Team.objects.get(name=data['winner'])
+        except:
+            return Response({'message':'winning team not found'})
+        try:
+            losing_team = models.Team.objects.get(name=data['loser'])
+        except:
+            return Response({'message':'losing team not found'})
+        try:
+            player = models.Player.objects.get(name=data['player_of_match'])
+        except:
+            return Response({'message':'player of match not found'})
+        try:
+            bowler = models.Player.objects.get(name=data['bowler_of_match'])
+        except:
+            return Response({'message':'bowler of match not found'})
+        try:
+            fielder = models.Player.objects.get(name=data['fielder_of_match'])
+        except:
+            return Response({'message':'fielder of match not found'})
+        if (data['winner_wickets'] < 0) or (data['loser_wickets'] < 0):
+            return Response({'message':'Wickets cannot be negative'})
+        if (data['winner_wickets'] > 10) or (data['loser_wickets'] > 10):
+            return Response({'message':'Wickets cannot be more than 10'})
+        if data['winner_score'] >= 0:
+            if data['winner_score'] >= data['loser_score']:
+                if str(player_of_match_team).lower() != str(data['winner']).lower():
+                    return Response({'message':'Player of match has to be from winning team'})
+        models.Match.objects.create(winner_score=data['winner_score'],loser_score=data['loser_score'],winner_wickets=data['winner_wickets'],loser_wickets=data['loser_wickets'],name=str(winning_team)+' vs '+str(losing_team), winner=winning_team, loser=losing_team, player_of_match=player,bowler_of_match=bowler, fielder_of_match=fielder)
+        models.Team.objects.filter(name=data['winner']).update(score=F('score')+2)
         return Response({'message':'Success'})
 
 
 class GetScoreAPIView(APIView):
     serlizer_class = ScoreSerializer
 
-    @swagger_auto_schema(tags=['Get Scores'], operation_description='List outs scores of all teams')
+    @swagger_auto_schema(tags=['Scores'], operation_description='List outs scores of all teams')
     def get(self, request):
         matches_qs = models.Team.objects.all()
         ser = self.serlizer_class(matches_qs, many=True)
         return Response({'Scores':ser.data})
-
-    
 
 
 class GetResultsAPIView(APIView):
@@ -202,5 +221,3 @@ class GetResultsAPIView(APIView):
             runs_left = int(match.winner_score) - int(match.loser_score)
             all_matches[match.name] = str(match.winner) + ' beat ' + str(match.loser) + ' by ' + str(wickets_left) + ' wickets'
         return Response(all_matches)
-
-        

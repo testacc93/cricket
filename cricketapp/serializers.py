@@ -8,6 +8,7 @@ class CountrySerializer(serializers.ModelSerializer):
         model = Country
         fields = ['name', ]
 
+
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
@@ -45,7 +46,7 @@ class VenueSerializer(serializers.ModelSerializer):
 class MatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
-        fields = ['name','winner','loser','winner_score','loser_score', 'winner_wickets', 'loser_wickets',  'player_of_match', 'bowler_of_match', 'fielder_of_match']
+        fields = ['winner','loser','winner_score','loser_score', 'winner_wickets', 'loser_wickets',  'player_of_match', 'bowler_of_match', 'fielder_of_match']
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

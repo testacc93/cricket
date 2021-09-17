@@ -18,6 +18,7 @@ class Team(models.Model):
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
     formed_date = datetime.datetime.now()
     score = models.IntegerField(default=2)
+    
 
     def __str__(self):
         return self.name
@@ -63,8 +64,3 @@ class Match(models.Model):
 
     class Meta:
          verbose_name_plural = "Matches"
-
-
-    # def get
-    
-    

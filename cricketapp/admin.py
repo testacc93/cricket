@@ -27,5 +27,6 @@ admin.site.register(Venue, VenueAdmin)
 
 class MatchAdmin(admin.ModelAdmin):
     list_display = ['name', 'player_of_match', 'winner', 'loser']
+    exclude = ['name']
 
 admin.site.register(Match, MatchAdmin)

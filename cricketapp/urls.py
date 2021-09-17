@@ -16,15 +16,14 @@ urlpatterns = [
     path('players', views.GetPlayerAPIView.as_view(), name='players'),
     path('create-player', views.CreatePlayerAPIView.as_view(), name='create-player'),
 
-    path('venue', views.GetVenueAPIView.as_view(), name='venue'),
+    path('venues', views.GetVenueAPIView.as_view(), name='venue'),
     path('create-venue', views.CreateVenueAPIView.as_view(), name='create-venue'),
 
-    path('match', views.GetMatchAPIView.as_view(), name='match'),
+    path('matches', views.GetMatchAPIView.as_view(), name='match'),
     path('create-match', views.CreateMatchAPIView.as_view(), name='create-match'),
 
     path('scores', views.GetScoreAPIView.as_view(), name='scores'),
 
-    path('result', views.GetResultsAPIView.as_view(), name='result'),
-
+    path('results', views.GetResultsAPIView.as_view(), name='result'),
 ]
 
